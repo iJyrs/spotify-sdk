@@ -1,8 +1,5 @@
 node_modules/
-lib/
-
-# Testing Folder(s)
-__tests__/
+__lib__/
 
 # IntelliJ IDEA
 .idea/
