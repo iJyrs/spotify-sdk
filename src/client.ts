@@ -1,23 +1,19 @@
 import { EventEmitter } from "events";
+import { SpotifyRoutes } from "./routes";
 
 export class SpotifyClient {
 
-    private authMethod: AuthenticationMethod;
+    private readonly authMethod: AuthenticationMethod;
+
+    public readonly routes: SpotifyRoutes;
 
     constructor(authMethod: AuthenticationMethod) {
-        let token: SpotifyToken | undefined = authMethod.getToken();
+        const token: SpotifyToken | undefined = authMethod.getToken();
         if(token === undefined)
             throw new Error("You must call AuthenticationMethod.authenticate() before creating instantiating!");
 
         this.authMethod = authMethod;
-    }
-
-    public setAuthenticationMethod(authMethod: AuthenticationMethod): void {
-        let token: SpotifyToken | undefined = authMethod.getToken();
-        if(token === undefined)
-            throw new Error("You must call AuthenticationMethod.authenticate() before creating instantiating!");
-
-        this.authMethod = authMethod;
+        this.routes = new SpotifyRoutes(authMethod);
     }
 
 }
@@ -38,16 +34,16 @@ export interface AuthenticationMethodOptions {
 export interface SpotifyToken {
 
     token: string;
-    expires: number;
-    timestamp: number;
+    expires_ms: number;
+    timestamp_ms: number;
 
 }
 
 export abstract class AuthenticationMethod extends EventEmitter {
 
-    protected token: SpotifyToken | undefined;
+    public options: AuthenticationMethodOptions;
 
-    protected options: AuthenticationMethodOptions;
+    protected token: SpotifyToken | undefined;
 
     protected constructor(options?: AuthenticationMethodOptions) {
         super();
@@ -56,29 +52,41 @@ export abstract class AuthenticationMethod extends EventEmitter {
         this.refreshOptions(this.options);
     }
 
-    public getOptions(): AuthenticationMethodOptions {
-        return this.options;
-    }
-
-    public setOptions(options: AuthenticationMethodOptions): void {
-        this.options = options;
-
-        this.refreshOptions(this.options);
-    }
-
     private refreshOptions(options: AuthenticationMethodOptions): void {
-        if(options.autoRefresh) {
-            // TODO: Implement auto-refresh
+        const apply_auto_refresh = (autoRefresh: boolean = false): void => {
+            if(!autoRefresh)
+                return;
+
+            const token: SpotifyToken | undefined = this.token;
+            if(token === undefined) {
+                this.once("ready", () => apply_auto_refresh(true));
+
+                return;
+            }
+
+            const timeLeft: number = Date.now() - token.timestamp_ms;
+            if(timeLeft >= 0) {
+                this.once("refresh", () => apply_auto_refresh(true));
+                this.refresh();
+
+                return;
+            }
+
+            setTimeout(() => {
+                this.refresh();
+            }, timeLeft - 5000); // Refresh 5 seconds before the token expires. (HTTP Latency)
         }
+
+        apply_auto_refresh(options.autoRefresh);
     }
 
     public getToken(): SpotifyToken | undefined {
         return this.token;
     }
 
-    abstract authenticate(): Promise<string | undefined>;
+    abstract authenticate(): any;
 
-    abstract refresh(): Promise<void>;
+    abstract refresh(): any;
 
     public emit<E extends keyof AuthMethodEvents>(eventName: E, ...args: AuthMethodEvents[E]): boolean {
         return super.emit(eventName, args);
@@ -107,6 +115,12 @@ export abstract class AuthenticationMethod extends EventEmitter {
     public removeAllListeners<E extends keyof AuthMethodEvents>(event?: E): this {
         return super.removeAllListeners(event);
     }
+
+}
+
+export interface UserVerifiedAuthMethod {
+
+    verify(data: any): void;
 
 }
 
@@ -143,10 +157,13 @@ export class ClientCredentialsAuthMethod extends AuthenticationMethod {
         const promise = Promise.resolve(undefined);
 
         promise.then(() => {
+            if(this.token === undefined)
+                this.emit("ready");
+
             this.token = {
                 token: json["access_token"],
-                expires: json["expires_in"],
-                timestamp: Date.now(),
+                expires_ms: json["expires_in"] * 1000,
+                timestamp_ms: Date.now(),
             };
         });
 
@@ -158,6 +175,60 @@ export class ClientCredentialsAuthMethod extends AuthenticationMethod {
         promise.then(() => this.emit("refresh"));
 
         return promise;
+    }
+
+}
+
+export interface ImplicitGrantResponseStruct {
+
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+    state?: string | undefined;
+
+}
+
+export class ImplictGrantAuthMethod extends AuthenticationMethod implements UserVerifiedAuthMethod {
+
+    public readonly client_id: string;
+    public readonly redirect_uri: string;
+    public readonly scopes: string[];
+
+    constructor(client_id: string, redirect_uri: string, scopes: string[] = [], options?: Omit<AuthenticationMethodOptions, "autoRefresh">) {
+        super(options);
+
+        this.client_id = client_id;
+        this.redirect_uri = redirect_uri;
+        this.scopes = scopes;
+    }
+
+    public authenticate(): string {
+        const url: URL = new URL("https://accounts.spotify.com/authorize");
+        url.searchParams.append("response_type", "token");
+        url.searchParams.append("client_id", this.client_id);
+        url.searchParams.append("redirect_uri", "http://localhost:3000/verify");
+
+        if(this.scopes.length > 0)
+            url.searchParams.append("scope", this.scopes.join(" "));
+
+        return url.toString();
+    }
+
+    public verify(data: ImplicitGrantResponseStruct): void {
+        const token: SpotifyToken | undefined = this.token;
+
+        this.token = {
+            token: data.access_token,
+            expires_ms: data.expires_in * 1000,
+            timestamp_ms: Date.now(),
+        };
+
+        if(token === undefined)
+            this.emit("ready");
+    }
+
+    public refresh(): Promise<void> {
+        return Promise.reject("Implicit Grant Authentication does not support refreshing! (See https://developer.spotify.com/documentation/web-api/tutorials/implicit-flow)");
     }
 
 }
