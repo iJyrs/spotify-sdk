@@ -21,7 +21,7 @@ export class SpotifyRoutes implements APIRoutes {
         const authMethod: AuthenticationMethod = this.authMethod;
 
         if(authMethod instanceof ClientCredentialsAuthMethod)
-            throw new UnsupportedOperationError("ClientCredentialsAuthMethod does not support this operation.");
+            throw new UnsupportedOperationError("Client Credentials Authentication does not support this operation.");
 
         const response: Response = await fetch(SpotifyRoutes.BASE_URL + "me", {
             method: "GET",
@@ -29,6 +29,9 @@ export class SpotifyRoutes implements APIRoutes {
                 "Authorization": "Bearer " + this.authMethod.getToken()?.token
             }
         });
+
+        if(!response.ok)
+            throw new Error("Unable to fetch data!");
 
         return await response.json();
     }

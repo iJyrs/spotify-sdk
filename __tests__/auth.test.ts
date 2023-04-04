@@ -1,41 +1,35 @@
-import { ImplictGrantAuthMethod, SpotifyClient } from "../src/client";
-import { createInterface } from "readline";
-import DoneCallback = jest.DoneCallback;
+import {ImplictGrantAuthMethod, IntentScopes, SpotifyClient} from "../src/client";
 
-const CLIENT_ID = "d14e34bdb9ea498686310bd9606556d1";
-const CLIENT_SECRET = "a2f6c90181c04464aaec7238a18835b6";
+const { CLIENT_ID, CLIENT_SECRET } = require("../config/config.json");
+const { spawn } = require('child_process');
 
-const readline = createInterface({
-    input: process.stdin,
-    output: process.stdout
+test("AuthenticationMethod#_options", () => {
+    const authMethod: ImplictGrantAuthMethod = new ImplictGrantAuthMethod(CLIENT_ID, new URL("http://localhost:3000/verify"), {
+        scope: [
+            IntentScopes.READ_PRIVATE_PLAYLIST,
+            "user-read-private"
+        ]
+    })
+
+    expect(authMethod.options.scope).toEqual([
+        "playlist-read-private",
+        "user-read-private"
+    ]);
 });
 
-test.concurrent("SpotifyClient#constructor", async () => {
-    const authMethod = new ImplictGrantAuthMethod(CLIENT_ID, "https://meturum.com");
-    const url: string = authMethod.authenticate();
+test("login", async () => {
+    const uri = new URL("http://localhost:3000/verify#access_token=BQBB_4jgqymAG3U2PVNThiyf9ofOMBGGylOPvQUUSU3jEkVfNPiSoymegcUq0hiNh6CEngyjRoknk_WuEY3vRDAZzh82EVpg9K5UVlPjPx9MQRhQ6r5U04Olm2JIeF-xkeL523pu3RqGcrgGmDPYlE9VxqdzfqSRaBdyFBF0F67s9DWCSb9nUyPfQlvGCa_rGa5F01HpP-L8KprgwCeyyytm&token_type=Bearer&expires_in=3600");
 
-    console.log("Open this URL in your browser: " + url);
-
-    const str = await new Promise<string>((resolve) => {
-        readline.question("", (input: string) => {
-            resolve(input);
-        });
+    const authMethod = new ImplictGrantAuthMethod(CLIENT_ID, new URL("http://localhost:3000/verify"), {
+        scope: [
+            IntentScopes.READ_PRIVATE_PLAYLIST
+        ]
     });
 
-    const response: URL = new URL(str);
+    authMethod.verify(uri);
 
-    authMethod.verify({
-        access_token: response.searchParams.get("access_token") as string,
-        token_type: response.searchParams.get("token_type") as string,
-        expires_in: parseInt((response.searchParams.get("expires_in") as string)),
-        state: (response.searchParams.get("state") as string | undefined)
-    });
+    const client = new SpotifyClient(authMethod);
 
-    const client: SpotifyClient = new SpotifyClient(authMethod);
     const data: any = await client.routes.me();
-
-    expect(data).not.toBeUndefined();
-    console.table(data);
-
-    readline.close();
-}, 60000);
+    console.log(data);
+});

@@ -25,9 +25,18 @@ export interface AuthMethodEvents {
 
 }
 
+export enum IntentScopes {
+
+    READ_PRIVATE_PLAYLIST = "playlist-read-private"
+
+}
+
 export interface AuthenticationMethodOptions {
 
     autoRefresh?: boolean;
+
+    // TODO: Write an enum for this.
+    scope?: (IntentScopes | string)[];
 
 }
 
@@ -41,15 +50,26 @@ export interface SpotifyToken {
 
 export abstract class AuthenticationMethod extends EventEmitter {
 
-    public options: AuthenticationMethodOptions;
+    private _options: AuthenticationMethodOptions;
 
     protected token: SpotifyToken | undefined;
 
     protected constructor(options?: AuthenticationMethodOptions) {
         super();
 
-        this.options = options || {};
-        this.refreshOptions(this.options);
+        this._options = options || {};
+        this.refreshOptions(this._options);
+    }
+
+
+    get options(): AuthenticationMethodOptions {
+        return this._options;
+    }
+
+    set options(value: AuthenticationMethodOptions) {
+        this._options = value;
+
+        this.refreshOptions(value);
     }
 
     private refreshOptions(options: AuthenticationMethodOptions): void {
@@ -191,30 +211,49 @@ export interface ImplicitGrantResponseStruct {
 export class ImplictGrantAuthMethod extends AuthenticationMethod implements UserVerifiedAuthMethod {
 
     public readonly client_id: string;
-    public readonly redirect_uri: string;
-    public readonly scopes: string[];
+    public readonly redirect_uri: URL;
 
-    constructor(client_id: string, redirect_uri: string, scopes: string[] = [], options?: Omit<AuthenticationMethodOptions, "autoRefresh">) {
+    constructor(client_id: string, redirect_uri: URL, options?: Omit<AuthenticationMethodOptions, "autoRefresh">) {
         super(options);
 
         this.client_id = client_id;
         this.redirect_uri = redirect_uri;
-        this.scopes = scopes;
     }
 
-    public authenticate(): string {
+    public authenticate(): URL {
         const url: URL = new URL("https://accounts.spotify.com/authorize");
         url.searchParams.append("response_type", "token");
         url.searchParams.append("client_id", this.client_id);
-        url.searchParams.append("redirect_uri", "http://localhost:3000/verify");
+        url.searchParams.append("redirect_uri", this.redirect_uri.toString());
 
-        if(this.scopes.length > 0)
-            url.searchParams.append("scope", this.scopes.join(" "));
+        const scope: (IntentScopes | string)[] | undefined = this.options.scope;
+        if(scope !== undefined && scope.length > 0)
+            url.searchParams.append("scope", scope.join(" "));
 
-        return url.toString();
+        return url;
     }
 
-    public verify(data: ImplicitGrantResponseStruct): void {
+    public verify(_data_: ImplicitGrantResponseStruct | URL): void {
+        let data: ImplicitGrantResponseStruct;
+
+        if(_data_ instanceof URL) {
+            if(_data_.searchParams.has("error"))
+                throw new Error("Unable to authenticate with the Spotify API! Error: " + _data_.searchParams.get("error") || "Unknown");
+
+            data = _data_.hash.split('&').reduce((prev: any, param: string, index: number) => {
+                if(index === 0) param = param.substring(1);
+
+                const [key, value] = param.split('=');
+                prev[key] = value;
+
+                return prev;
+            }, {} as ImplicitGrantResponseStruct);
+        }else data = _data_;
+
+        // Verify that the object contains all required elements.
+        if(!("access_token" in data && "token_type" in data && "expires_in" in data))
+            throw new TypeError("Invalid Implicit Grant Response!");
+
         const token: SpotifyToken | undefined = this.token;
 
         this.token = {
