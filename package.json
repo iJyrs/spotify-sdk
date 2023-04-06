@@ -1,16 +1,18 @@
 {
-  "name": "spotify-webapi-sdk",
-  "version": "1.0.0",
+  "name": "@ijyrs/spotify-webapi",
+  "version": "0.0.3",
   "description": "An open-source, unofficial SDK package for developers looking to integrate the Spotify Web API with their Node.js applications.",
-  "main": "__lib__/index.js",
-  "types": "lib/index.d.ts",
+  "main": "__lib__/index",
+  "typings": "__lib__/index",
   "files": [
-    "__lib__/**/*"
+    "__lib__",
+    "src"
   ],
   "scripts": {
     "test": "jest --config jest.config.json --passWithNoTests",
+    "clean": "rmdir /s /q __lib__",
     "build": "tsc",
-    "deploy": "npm run build && npm publish"
+    "deploy": "npm run build && npm publish --access public"
   },
   "author": "iJyrs",
   "license": "MIT",

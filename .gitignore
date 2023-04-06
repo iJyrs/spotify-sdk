@@ -1,5 +1,8 @@
 node_modules/
 __lib__/
 
+# Config Files
+__tests__/config/
+
 # IntelliJ IDEA
 .idea/
