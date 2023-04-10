@@ -1,5 +1,6 @@
-import { AuthenticationMethod, AuthenticationMethodOptions } from "../AuthenticationMethod";
-import { UserResponseStruct } from "../UserVerifiedMethod";
+import {AuthenticationMethod, AuthenticationMethodOptions} from "../AuthenticationMethod";
+import {UserResponseStruct} from "../UserVerifiedMethod";
+import {HttpApiError} from "../../errors";
 
 export class ClientCredentialsMethod extends AuthenticationMethod {
 
@@ -14,7 +15,7 @@ export class ClientCredentialsMethod extends AuthenticationMethod {
     public async authenticate(): Promise<void> {
         const basic_token: string = Buffer.from(this.client_id + ":" + this.client_secret).toString("base64");
 
-        const response: Response = await fetch("https://accounts.spotify.com/api/token", {
+        const response: Response = await fetch(ClientCredentialsMethod.SPOTIFY_TOKEN_URL, {
             method: "POST",
             headers: {
                 "Authorization": "Basic " + basic_token,
@@ -25,10 +26,12 @@ export class ClientCredentialsMethod extends AuthenticationMethod {
             })
         });
 
-        if (!response.ok) // Caused by invalid client ID or secret.
-            return Promise.reject("Unable to authenticate with the Spotify API! Status code: " + response.status);
-
         const data: UserResponseStruct = await response.json();
+
+        if (!response.ok) // Caused by invalid client ID or secret.
+            throw new HttpApiError("Unable to authenticate with the Spotify API! Status code: " + response.status);
+
+        // Check to make sure all required keys are inside the response.
         const keys: (keyof UserResponseStruct)[] = ["access_token", "token_type", "expires_in"];
         if (!keys.every(key => key in data))
             throw new TypeError("Invalid UserResponseStruct! (Are you outdated?, this shouldn't happen)")
@@ -41,10 +44,7 @@ export class ClientCredentialsMethod extends AuthenticationMethod {
     }
 
     public refresh(): Promise<void> {
-        const promise: any = this.authenticate();
-        promise.then(() => this.emit("refresh"));
-
-        return promise;
+        return this.authenticate();
     }
 
 }

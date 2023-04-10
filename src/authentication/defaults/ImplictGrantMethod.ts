@@ -1,5 +1,6 @@
 import { UserResponseStruct, UserVerifiedMethod, UserVerifiedOptions } from "../UserVerifiedMethod";
 import { IntentScopes, SpotifyToken } from "../AuthenticationMethod";
+import { SpotifyError, UnsupportedOperationError } from "../../errors";
 
 export class ImplictGrantMethod extends UserVerifiedMethod {
 
@@ -9,7 +10,7 @@ export class ImplictGrantMethod extends UserVerifiedMethod {
 
     public authenticate(): URL {
         if (this.verified)
-            throw new Error("Cannot authenticate an already authenticated authentication method!");
+            throw new SpotifyError("Cannot authenticate an already authenticated authentication method!");
 
         const url: URL = new URL(ImplictGrantMethod.SPOTIFY_AUTH_URL);
         url.searchParams.append("response_type", "token");
@@ -28,13 +29,14 @@ export class ImplictGrantMethod extends UserVerifiedMethod {
 
     public verify(data: UserResponseStruct | URL): void {
         if (this.verified)
-            throw new Error("Cannot verify an already verified authentication method!");
+            throw new SpotifyError("Cannot verify an already verified authentication method!");
 
         data = ( data instanceof URL
             ? UserVerifiedMethod.parseURL(data)
             : data
         ) as UserResponseStruct;
 
+        // Check to make sure all required keys are inside the response.
         const keys: (keyof UserResponseStruct)[] = ["access_token", "expires_in"];
         if(!keys.every(key => key in data))
             throw new TypeError("Invalid UserResponseStruct! (Are you outdated?, this shouldn't happen)");
@@ -47,7 +49,7 @@ export class ImplictGrantMethod extends UserVerifiedMethod {
     }
 
     public refresh(): void {
-        throw new ReferenceError("Implicit Grant Authentication does not support refreshing! (See https://developer.spotify.com/documentation/web-api/tutorials/implicit-flow)");
+        throw new UnsupportedOperationError("Implicit Grant Authentication does not support refreshing! (See https://developer.spotify.com/documentation/web-api/tutorials/implicit-flow)");
     }
 
 }

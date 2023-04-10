@@ -1,5 +1,6 @@
 import { AuthenticationMethod } from "../authentication/AuthenticationMethod";
 import { UserVerifiedMethod } from "../authentication/UserVerifiedMethod";
+import { HttpApiError } from "../errors";
 
 type SearchOptions = {
     q: string,
@@ -8,16 +9,6 @@ type SearchOptions = {
     limit?: number,
     offset?: number,
     include_external?: string
-}
-
-export interface SpotifyProfileStruct {
-    readonly id: string,
-    readonly display_name: string,
-    readonly external_urls: any,
-    readonly href: string,
-    readonly followers: any,
-    readonly images: any[],
-    readonly type: string,
 }
 
 export class BasicRoutes {
@@ -41,7 +32,7 @@ export class BasicRoutes {
         });
 
         if (!response.ok)
-            return Promise.reject("Unable to search! Status code: " + response.status);
+            throw new HttpApiError("Unable to fetch search data! Status code: " + response.status);
 
         return await response.json();
     }
@@ -63,7 +54,7 @@ export class BearerRoutes extends BasicRoutes {
         });
 
         if (!response.ok)
-            throw new Error("Unable to fetch current user profile! Status code: " + response.status);
+            throw new HttpApiError("Unable to fetch current user profile! Status code: " + response.status);
 
         return await response.json();
     }

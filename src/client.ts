@@ -6,6 +6,7 @@
 import { AuthenticationMethod } from "./authentication/AuthenticationMethod";
 import { BasicRoutes, BearerRoutes } from "./routes/routes";
 import { UserVerifiedMethod } from "./authentication/UserVerifiedMethod";
+import { SpotifyError } from "./errors";
 
 export class SpotifyClient<A extends AuthenticationMethod, R extends BasicRoutes> {
 
@@ -14,7 +15,7 @@ export class SpotifyClient<A extends AuthenticationMethod, R extends BasicRoutes
 
     constructor(authMethod: A, routes?: R) {
         if(!authMethod.verified)
-            throw new Error("You must verify the authentication method before creating a client!");
+            throw new SpotifyError("You must verify the authentication method before creating a client!");
 
         this.authMethod = authMethod;
         this.routes = routes ?? (authMethod instanceof UserVerifiedMethod
