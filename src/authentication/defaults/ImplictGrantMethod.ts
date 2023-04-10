@@ -1,27 +1,23 @@
-import { UserVerifiedMethod } from "../UserVerifiedMethod";
-import { AuthenticationMethodOptions, IntentScopes, SpotifyToken } from "../AuthenticationMethod";
-
-type ImplicitGrantResponseStruct = {
-    access_token: string;
-    token_type: string;
-    expires_in: number;
-    state?: string | undefined;
-}
+import { UserResponseStruct, UserVerifiedMethod, UserVerifiedOptions } from "../UserVerifiedMethod";
+import { IntentScopes, SpotifyToken } from "../AuthenticationMethod";
 
 export class ImplictGrantMethod extends UserVerifiedMethod {
 
-    constructor(client_id: string, redirect_uri: URL, options?: Omit<AuthenticationMethodOptions, "autoRefresh">) {
-        super(client_id, redirect_uri, options);
+    constructor(client_id: string, options: Omit<UserVerifiedOptions, "autoRefresh">) {
+        super(client_id, options);
     }
 
     public authenticate(): URL {
         if (this.token !== undefined)
             throw new Error("Cannot authenticate an already authenticated authentication method!");
 
-        const url: URL = new URL("https://accounts.spotify.com/authorize");
+        const url: URL = new URL(ImplictGrantMethod.SPOTIFY_AUTH_URL);
         url.searchParams.append("response_type", "token");
         url.searchParams.append("client_id", this.client_id);
-        url.searchParams.append("redirect_uri", this.redirect_uri.toString());
+        url.searchParams.append("redirect_uri", (this.options as UserVerifiedOptions).redirect_uri.toString());
+
+        if((this.options as UserVerifiedOptions).show_dialog)
+            url.searchParams.append("show_dialog", "true")
 
         const scope: (IntentScopes | string)[] | undefined = this.options.scope;
         if (scope !== undefined && scope.length > 0)
@@ -30,38 +26,24 @@ export class ImplictGrantMethod extends UserVerifiedMethod {
         return url;
     }
 
-    public verify(data: ImplicitGrantResponseStruct | URL): void {
+    public verify(data: UserResponseStruct | URL): void {
         if (this.token !== undefined)
             throw new Error("Cannot verify an already verified authentication method!");
 
-        const parseURL = (url: URL): ImplicitGrantResponseStruct => {
-            if (url.searchParams.has("error"))
-                throw new Error("Unable to authenticate with the Spotify API! Error: " + url.searchParams.get("error"));
+        data = ( data instanceof URL
+            ? ImplictGrantMethod.parseURL(data)
+            : data
+        ) as UserResponseStruct;
 
-            return url.hash.split('&').reduce((prev: any, param) => {
-                const [key, value] = param.split('=');
-                prev[key] = value;
-
-                return prev;
-            }, {} as ImplicitGrantResponseStruct);
-        }
-
-        data = data instanceof URL ? parseURL(data) : data;
-
-        // Verify that the object contains all required elements.
-        if (!("access_token" in data && "token_type" in data && "expires_in" in data))
-            throw new TypeError("Invalid Implicit Grant Response!");
-
-        const token: SpotifyToken | undefined = this.token;
+        const keys: (keyof UserResponseStruct)[] = ["access_token", "expires_in"];
+        if(!keys.every(key => key in data))
+            throw new TypeError("Invalid UserResponseStruct! (Are you outdated?, this shouldn't happen)");
 
         this.token = {
-            access_token: data.access_token,
-            expires_ms: data.expires_in * 1000,
+            access_token: data["access_token"],
+            expires_ms: data["expires_in"] * 1000,
             timestamp_ms: Date.now(),
-        };
-
-        if (token === undefined)
-            this.emit("ready");
+        } satisfies SpotifyToken;
     }
 
     public refresh(): void {

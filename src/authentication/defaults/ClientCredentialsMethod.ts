@@ -1,23 +1,17 @@
-import { AuthenticationMethod, AuthenticationMethodOptions, SpotifyToken } from "../AuthenticationMethod";
-
-type ClientCredentialsResponseStruct = {
-    access_token: string,
-    expires_in: number
-}
+import { AuthenticationMethod, AuthenticationMethodOptions } from "../AuthenticationMethod";
+import { UserResponseStruct } from "../UserVerifiedMethod";
 
 export class ClientCredentialsMethod extends AuthenticationMethod {
 
-    public readonly client_id: string;
-    public readonly client_secret: string;
+    private readonly client_secret: string;
 
-    constructor(client_id: string, client_secret: string, options?: Omit<AuthenticationMethodOptions, "scope">) {
-        super(options);
+    constructor(client_id: string, client_secret: string, options?: Omit<AuthenticationMethodOptions, "scope" | "redirect_uri">) {
+        super(client_id, options);
 
-        this.client_id = client_id;
         this.client_secret = client_secret;
     }
 
-    public async authenticate(): Promise<ClientCredentialsMethod> {
+    public async authenticate(): Promise<void> {
         const basic_token: string = Buffer.from(this.client_id + ":" + this.client_secret).toString("base64");
 
         const response: Response = await fetch("https://accounts.spotify.com/api/token", {
@@ -34,23 +28,16 @@ export class ClientCredentialsMethod extends AuthenticationMethod {
         if (!response.ok) // Caused by invalid client ID or secret.
             return Promise.reject("Unable to authenticate with the Spotify API! Status code: " + response.status);
 
-        const data: ClientCredentialsResponseStruct = await response.json();
-
-        if (!("access_token" in data && "expires_in" in data))
-            throw new TypeError("Invalid Client Credentials Response! (Maybe you're outdated?)")
-
-        const token: SpotifyToken | undefined = this.token;
+        const data: UserResponseStruct = await response.json();
+        const keys: (keyof UserResponseStruct)[] = ["access_token", "token_type", "expires_in"];
+        if (!keys.every(key => key in data))
+            throw new TypeError("Invalid UserResponseStruct! (Are you outdated?, this shouldn't happen)")
 
         this.token = {
             access_token: data["access_token"],
             expires_ms: data["expires_in"] * 1000,
             timestamp_ms: Date.now(),
         };
-
-        if (token === undefined)
-            this.emit("ready");
-
-        return this;
     }
 
     public refresh(): Promise<void> {

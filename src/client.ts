@@ -3,18 +3,23 @@
  * the "index.ts" file in the same directory when sorted alphabetically.
  */
 
-import { AuthenticationMethod, SpotifyToken } from "./authentication/AuthenticationMethod";
+import { AuthenticationMethod } from "./authentication/AuthenticationMethod";
+import { BasicRoutes, BearerRoutes } from "./routes/routes";
+import { UserVerifiedMethod } from "./authentication/UserVerifiedMethod";
 
-export class SpotifyClient {
+export class SpotifyClient<A extends AuthenticationMethod, R extends BasicRoutes> {
 
-    private readonly authMethod: AuthenticationMethod;
+    public readonly authMethod: A;
+    public readonly routes: R;
 
-    constructor(authMethod: AuthenticationMethod) {
-        const token: SpotifyToken | undefined = authMethod.token;
-        if (token === undefined)
-            throw new Error("You must call AuthenticationMethod.authenticate() before creating instantiating!");
+    constructor(authMethod: A, routes?: R) {
+        if(!authMethod.verified)
+            throw new Error("You must verify the authentication method before creating a client!");
 
         this.authMethod = authMethod;
+        this.routes = routes ?? (authMethod instanceof UserVerifiedMethod
+            ? new BearerRoutes(authMethod as any)
+            : new BasicRoutes(authMethod)) as unknown as R;
     }
 
 }

@@ -17,6 +17,7 @@ export enum IntentScopes {
 
 export type AuthenticationMethodOptions = {
     autoRefresh?: boolean;
+    redirect_uri?: URL;
     scope?: (IntentScopes | string)[];
 }
 
@@ -27,21 +28,26 @@ type AuthMethodEvents = {
 
 export abstract class AuthenticationMethod extends EventEmitter {
 
-    private _options: AuthenticationMethodOptions;
-    protected _token?: SpotifyToken;
+    public static readonly SPOTIFY_AUTH_URL: string = "https://accounts.spotify.com/authorize";
+    public static readonly SPOTIFY_TOKEN_URL: string = "https://accounts.spotify.com/api/token";
 
-    protected constructor(options?: AuthenticationMethodOptions) {
+    protected client_id: string;
+    private _options: AuthenticationMethodOptions;
+    private _token?: SpotifyToken;
+
+    protected constructor(client_id: string, options: AuthenticationMethodOptions = {}) {
         super();
 
-        this._options = options || {};
+        this.client_id = client_id;
+        this._options = options;
         this.refreshOptions(this._options);
     }
 
-    get options(): AuthenticationMethodOptions {
+    public get options(): AuthenticationMethodOptions {
         return this._options;
     }
 
-    set options(value: AuthenticationMethodOptions) {
+    public set options(value: AuthenticationMethodOptions) {
         this._options = value;
 
         this.refreshOptions(value);
@@ -79,12 +85,16 @@ export abstract class AuthenticationMethod extends EventEmitter {
         return this._token;
     }
 
-    protected set token(value: SpotifyToken | undefined) {
+    set token(value: SpotifyToken | undefined) {
         const prev = this.token;
         this._token = value;
 
         if (prev === undefined) this.emit("ready")
         else this.emit("refresh");
+    }
+
+    get verified(): boolean {
+        return this.token !== undefined;
     }
 
     abstract authenticate(): any;

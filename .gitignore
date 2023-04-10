@@ -2,7 +2,7 @@ node_modules/
 __lib__/
 
 # Config Files
-__tests__/config/
+__tests__/config/config.json
 
 # IntelliJ IDEA
 .idea/
