@@ -6,7 +6,7 @@
 
 An open-source, unofficial SDK package for developers looking to integrate the Spotify Web API with their Node.js applications.
 
-⚠️ This project is still under heavy development! Use at your own risk.⚠️
+⚠️ This project is still under heavy development! Use at your own risk. ⚠️
 
 *There are going to be missing features & bugs,* please open an [Issue]() and I will get to it eventually.
 
