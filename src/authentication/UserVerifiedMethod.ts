@@ -25,12 +25,15 @@ export abstract class UserVerifiedMethod extends AuthenticationMethod {
     abstract verify(data: any): void;
 
     public static parseURL(url: URL): any {
-        return url.hash.split('&').reduce((prev: any, param) => {
-            const [key, value] = param.split('=');
-            prev[key] = value;
+        const obj: {[key: string]: any} = {};
+        const array = url.hash.substring(1).split('&');
 
-            return prev;
-        });
+        for(let i = 0; i < array.length; i++) {
+            const [key, value] = array[i].split('=');
+            obj[key] = decodeURIComponent(value);
+        }
+
+        return obj;
     }
 
 }

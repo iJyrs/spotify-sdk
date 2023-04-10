@@ -85,7 +85,7 @@ export abstract class AuthenticationMethod extends EventEmitter {
         return this._token;
     }
 
-    set token(value: SpotifyToken | undefined) {
+    protected set token(value: SpotifyToken | undefined) {
         const prev = this.token;
         this._token = value;
 

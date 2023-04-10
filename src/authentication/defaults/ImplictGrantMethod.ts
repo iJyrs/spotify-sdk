@@ -8,7 +8,7 @@ export class ImplictGrantMethod extends UserVerifiedMethod {
     }
 
     public authenticate(): URL {
-        if (this.token !== undefined)
+        if (this.verified)
             throw new Error("Cannot authenticate an already authenticated authentication method!");
 
         const url: URL = new URL(ImplictGrantMethod.SPOTIFY_AUTH_URL);
@@ -27,11 +27,11 @@ export class ImplictGrantMethod extends UserVerifiedMethod {
     }
 
     public verify(data: UserResponseStruct | URL): void {
-        if (this.token !== undefined)
+        if (this.verified)
             throw new Error("Cannot verify an already verified authentication method!");
 
         data = ( data instanceof URL
-            ? ImplictGrantMethod.parseURL(data)
+            ? UserVerifiedMethod.parseURL(data)
             : data
         ) as UserResponseStruct;
 
