@@ -21,7 +21,7 @@ export class AuthorizationCodeMethod extends UserVerifiedMethod {
         if (this.verified)
             throw new SpotifyError("This instance has already been authenticated!");
 
-        // All we do here is generate an URL for the user to authorize.
+        // All we do here is generate a URL for the user to authorize.
 
         const url: URL = new URL(AuthorizationCodeMethod.SPOTIFY_AUTH_URL);
         url.searchParams.append("response_type", "code");
