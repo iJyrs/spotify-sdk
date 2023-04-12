@@ -10,7 +10,7 @@ import { BearerRoutes } from "./routes/BearerRoutes";
 
 export class SpotifyClient<R extends BasicRoutes> {
 
-    protected authMethod: AuthenticationMethod;
+    protected readonly authMethod: AuthenticationMethod;
     public readonly routes: R;
 
     constructor(authMethod: AuthenticationMethod) {
@@ -19,13 +19,6 @@ export class SpotifyClient<R extends BasicRoutes> {
 
         this.authMethod = authMethod;
         this.routes = new BearerRoutes(authMethod) as unknown as R;
-    }
-
-    public setAuthMethod(authMethod: AuthenticationMethod) {
-        if(!authMethod.verified)
-            throw new SpotifyError("Could not update client authentication method! You must verify the new method, first!");
-
-        this.authMethod = authMethod;
     }
 
 }
