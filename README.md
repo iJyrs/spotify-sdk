@@ -20,6 +20,25 @@ To access Spotify's Web API, you must create a application, you can find the lin
 
 *Coming soon.* **Should** be available once the library reaches v1.0.0 or when mostly completed.
 
+### Quick Example:
+
+For this example, we will be using the `ClientCredentialsMethod` to authenticate with Spotify's WebAPI.
+
+```typescript
+const method = await new ClientCredentialsMethod(CLIENT_ID, CLIENT_SECRET, {
+    autoRefresh: true
+}).authenticate();
+
+// The client cannot be insantiated without being verified. (Has a valid access token)
+const client = new SpotifyClient<BasicRoutes>(method);
+
+// Responses will have types in the future...
+const data: any = await client.routes.search({
+    q: "Me and Your Mama",
+    type: ["track"]
+});
+```
+
 # Sources / Acknowledgements
 
 - Spotify Web API Documentation: [Click here](https://developer.spotify.com/documentation/web-api)

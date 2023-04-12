@@ -11,11 +11,15 @@ import { launch as openChrome } from "chrome-launcher";
 import {BasicRoutes} from "../src/routes/BasicRoutes";
 
 test("ClientCredentialsMethod", async () => {
-    const method = new (CLIENT_ID, CLIENT_SECRET, {
+    const method = await new ClientCredentialsMethod(CLIENT_ID, CLIENT_SECRET, {
         autoRefresh: true
+    }).authenticate();
+
+    const client = new SpotifyClient<BasicRoutes>(method);
+
+    // Response will have types in the future...
+    const data: any = await client.routes.search({
+        q: "Me and Your Mama",
+        type: ["track"]
     });
-
-    await method.authenticate();
-
-    const client = new SpotifyClient(method);
 })
