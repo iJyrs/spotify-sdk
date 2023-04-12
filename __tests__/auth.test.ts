@@ -15,5 +15,5 @@ type GetAlbumTracksOptions = {
 }
 
 test("ClientCredentialsMethod", async () => {
-    
+
 });
