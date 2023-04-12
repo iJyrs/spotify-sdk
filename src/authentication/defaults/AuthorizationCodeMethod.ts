@@ -1,5 +1,5 @@
 import { UserResponseStruct, UserVerifiedMethod, UserVerifiedOptions } from "../UserVerifiedMethod";
-import { IntentScopes, SpotifyToken } from "../AuthenticationMethod";
+import {AuthenticationMethod, IntentScopes, SpotifyToken} from "../AuthenticationMethod";
 import {HttpApiError, SpotifyError} from "../../errors";
 
 export type AuthorizationCodeResponseStruct = {
@@ -57,10 +57,7 @@ export class AuthorizationCodeMethod extends UserVerifiedMethod {
 
         const response: Response = await fetch(AuthorizationCodeMethod.SPOTIFY_TOKEN_URL, {
             method: "POST",
-            headers: {
-                "Authorization": "Basic " + Buffer.from(this.client_id + ":" + this.client_secret).toString("base64"),
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
+            headers: AuthenticationMethod.buildHeaders(this.client_id, this.client_secret),
             body: new URLSearchParams({
                 grant_type: "authorization_code",
                 redirect_uri: (this.options as UserVerifiedOptions).redirect_uri.toString(),
@@ -93,10 +90,7 @@ export class AuthorizationCodeMethod extends UserVerifiedMethod {
 
         const response: Response = await fetch(AuthorizationCodeMethod.SPOTIFY_TOKEN_URL, {
             method: "POST",
-            headers: {
-                "Authorization": "Basic " + Buffer.from(this.client_id + ":" + this.client_secret).toString("base64"),
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
+            headers: AuthenticationMethod.buildHeaders(this.client_id, this.client_secret),
             body: new URLSearchParams({
                 grant_type: "refresh_token",
                 refresh_token: this.token?.refresh_token as string

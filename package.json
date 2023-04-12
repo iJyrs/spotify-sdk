@@ -1,6 +1,6 @@
 {
   "name": "@ijyrs/spotify-webapi",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "An open-source, unofficial SDK package for developers looking to integrate the Spotify Web API with their Node.js applications.",
   "main": "__lib__/index",
   "typings": "__lib__/index",

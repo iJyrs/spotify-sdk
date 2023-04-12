@@ -12,15 +12,10 @@ export class ClientCredentialsMethod extends AuthenticationMethod {
         this.client_secret = client_secret;
     }
 
-    public async authenticate(): Promise<void> {
-        const basic_token: string = Buffer.from(this.client_id + ":" + this.client_secret).toString("base64");
-
+    public async authenticate(): Promise<ClientCredentialsMethod> {
         const response: Response = await fetch(ClientCredentialsMethod.SPOTIFY_TOKEN_URL, {
             method: "POST",
-            headers: {
-                "Authorization": "Basic " + basic_token,
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
+            headers: AuthenticationMethod.buildHeaders(this.client_id, this.client_secret),
             body: new URLSearchParams({
                 grant_type: "client_credentials"
             })
@@ -41,10 +36,12 @@ export class ClientCredentialsMethod extends AuthenticationMethod {
             expires_ms: data["expires_in"] * 1000,
             timestamp_ms: Date.now(),
         };
+
+        return this;
     }
 
-    public refresh(): Promise<void> {
-        return this.authenticate();
+    public async refresh(): Promise<void> {
+        await this.authenticate();
     }
 
 }

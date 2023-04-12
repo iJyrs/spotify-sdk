@@ -35,11 +35,11 @@ export abstract class AuthenticationMethod extends EventEmitter {
     private _options: AuthenticationMethodOptions;
     private _token?: SpotifyToken;
 
-    protected constructor(client_id: string, options: AuthenticationMethodOptions = {}) {
+    protected constructor(client_id: string, options?: AuthenticationMethodOptions) {
         super();
 
         this.client_id = client_id;
-        this._options = options;
+        this._options = options ?? {};
         this.refreshOptions(this._options);
     }
 
@@ -127,6 +127,13 @@ export abstract class AuthenticationMethod extends EventEmitter {
 
     public removeAllListeners<E extends keyof AuthMethodEvents>(event?: E): this {
         return super.removeAllListeners(event);
+    }
+
+    public static buildHeaders(client_id: string, client_secret: string): HeadersInit {
+        return {
+            "Authorization": "Basic " + Buffer.from(client_id + ":" + client_secret).toString("base64"),
+            "Content-Type": "application/x-www-form-urlencoded"
+        };
     }
 
 }

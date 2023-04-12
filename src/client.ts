@@ -4,23 +4,28 @@
  */
 
 import { AuthenticationMethod } from "./authentication/AuthenticationMethod";
-import { BasicRoutes, BearerRoutes } from "./routes/routes";
-import { UserVerifiedMethod } from "./authentication/UserVerifiedMethod";
+import { BasicRoutes } from "./routes/BasicRoutes";
 import { SpotifyError } from "./errors";
+import { BearerRoutes } from "./routes/BearerRoutes";
 
-export class SpotifyClient<A extends AuthenticationMethod, R extends BasicRoutes> {
+export class SpotifyClient<R extends BasicRoutes> {
 
-    public readonly authMethod: A;
+    protected authMethod: AuthenticationMethod;
     public readonly routes: R;
 
-    constructor(authMethod: A, routes?: R) {
+    constructor(authMethod: AuthenticationMethod) {
         if(!authMethod.verified)
             throw new SpotifyError("You must verify the authentication method before creating a client!");
 
         this.authMethod = authMethod;
-        this.routes = routes ?? (authMethod instanceof UserVerifiedMethod
-            ? new BearerRoutes(authMethod as any)
-            : new BasicRoutes(authMethod)) as unknown as R;
+        this.routes = new BearerRoutes(authMethod) as unknown as R;
+    }
+
+    public setAuthMethod(authMethod: AuthenticationMethod) {
+        if(!authMethod.verified)
+            throw new SpotifyError("Could not update client authentication method! You must verify the new method, first!");
+
+        this.authMethod = authMethod;
     }
 
 }

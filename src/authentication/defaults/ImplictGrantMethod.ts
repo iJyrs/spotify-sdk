@@ -2,7 +2,7 @@ import { UserResponseStruct, UserVerifiedMethod, UserVerifiedOptions } from "../
 import { IntentScopes, SpotifyToken } from "../AuthenticationMethod";
 import { SpotifyError, UnsupportedOperationError } from "../../errors";
 
-export class ImplictGrantMethod extends UserVerifiedMethod {
+class ImplictGrantMethod extends UserVerifiedMethod {
 
     constructor(client_id: string, options: Omit<UserVerifiedOptions, "autoRefresh">) {
         super(client_id, options);
@@ -10,7 +10,7 @@ export class ImplictGrantMethod extends UserVerifiedMethod {
 
     public authenticate(): URL {
         if (this.verified)
-            throw new SpotifyError("Cannot authenticate an already authenticated authentication method!");
+            throw new SpotifyError("This instance has already been authenticated!");
 
         const url: URL = new URL(ImplictGrantMethod.SPOTIFY_AUTH_URL);
         url.searchParams.append("response_type", "token");
@@ -29,7 +29,7 @@ export class ImplictGrantMethod extends UserVerifiedMethod {
 
     public verify(data: UserResponseStruct | URL): void {
         if (this.verified)
-            throw new SpotifyError("Cannot verify an already verified authentication method!");
+            throw new SpotifyError("This instance has already been authenticated!");
 
         data = ( data instanceof URL
             ? UserVerifiedMethod.parseURL(data)
