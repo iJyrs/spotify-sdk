@@ -10,6 +10,19 @@ type SearchOptions = {
     include_external?: string
 }
 
+type GetAlbumTracksOptions = {
+    id: string,
+    market?: string,
+    limit?: number,
+    offset?: number
+}
+
+type GetUsersSavedAlbumsOptions = {
+    limit?: number,
+    offset?: number,
+    market?: string,
+}
+
 export class BearerRoutes {
 
     protected readonly authMethod: AuthenticationMethod;
@@ -65,6 +78,43 @@ export class BearerRoutes {
 
         if (!response.ok)
             throw new HttpApiError("Unable to fetch album! Status code: " + response.status);
+
+        return await response.json();
+    }
+
+    public async getAlbumTracksById(options: GetAlbumTracksOptions | string): Promise<any> {
+        if(typeof options === "string")
+            options = { id: options };
+
+        const uri = new URL("https://api.spotify.com/v1/albums/" + options.id + "/tracks");
+        for (const [key, value] of Object.entries(options))
+            if(key !== "id") uri.searchParams.append(key, value as string);
+
+        const response = await fetch(uri, {
+            method: "GET",
+            headers: BearerRoutes.buildHeaders(this.authMethod.token?.access_token!)
+        });
+
+        if (!response.ok)
+            throw new HttpApiError("Unable to fetch album tracks! Status code: " + response.status);
+
+        return await response.json();
+    }
+
+    public async getUsersSavedAlbums(options?: GetUsersSavedAlbumsOptions): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/me/albums");
+
+        if(options !== undefined)
+            for (const [key, value] of Object.entries(options))
+                uri.searchParams.append(key, value as string);
+
+        const response = await fetch(uri, {
+            method: "GET",
+            headers: BearerRoutes.buildHeaders(this.authMethod.token?.access_token!)
+        });
+
+        if (!response.ok)
+            throw new HttpApiError("Unable to fetch user's saved albums! Status code: " + response.status);
 
         return await response.json();
     }

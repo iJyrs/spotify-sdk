@@ -11,7 +11,8 @@ export interface SpotifyToken {
 
 export enum IntentScopes {
 
-    READ_PRIVATE_PLAYLIST = "playlist-read-private"
+    READ_PRIVATE_PLAYLIST = "playlist-read-private",
+    READ_USER_LIBRARY = "user-library-read"
 
 }
 

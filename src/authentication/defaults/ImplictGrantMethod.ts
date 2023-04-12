@@ -2,7 +2,7 @@ import { UserResponseStruct, UserVerifiedMethod, UserVerifiedOptions } from "../
 import { IntentScopes, SpotifyToken } from "../AuthenticationMethod";
 import { SpotifyError, UnsupportedOperationError } from "../../errors";
 
-class ImplictGrantMethod extends UserVerifiedMethod {
+export class ImplictGrantMethod extends UserVerifiedMethod {
 
     constructor(client_id: string, options: Omit<UserVerifiedOptions, "autoRefresh">) {
         super(client_id, options);
