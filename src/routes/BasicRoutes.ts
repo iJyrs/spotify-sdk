@@ -7,5 +7,8 @@ import { OmitFunction } from "../index";
 
 export type BasicRoutes = OmitFunction<BearerRoutes,
     "getCurrentProfile" |
-    "getUsersSavedAlbums"
+    "getCurrentUsersSavedAlbums" |
+    "saveAlbumsForCurrentUser" |
+    "removeCurrentUsersSavedAlbums" |
+    "checkCurrentUserSavedAlbums"
 >;

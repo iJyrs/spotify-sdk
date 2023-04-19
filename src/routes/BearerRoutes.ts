@@ -1,27 +1,31 @@
-import { AuthenticationMethod } from "../authentication/AuthenticationMethod";
+import {AuthenticationMethod, SpotifyToken} from "../authentication/AuthenticationMethod";
 import { HttpApiError } from "../errors";
 
-type SearchOptions = {
-    q: string,
-    type: ("album" | "artist" | "playlist" | "track" | "show" | "episode" | "audiobook")[],
-    market?: string,
-    limit?: number,
-    offset?: number,
-    include_external?: string
-}
+type HttpMethods = "GET" | "POST" | "PUT" | "DELETE";
 
-type GetAlbumTracksOptions = {
-    id: string,
-    market?: string,
-    limit?: number,
-    offset?: number
-}
+type RouteOptions = {
+    readonly id?: string,
+    readonly q?: string,
+    readonly type?: string[],
+    readonly market?: string,
+    readonly country?: string,
+    readonly limit?: number,
+    readonly offset?: number,
+    readonly include_external?: string
+};
 
-type GetUsersSavedAlbumsOptions = {
-    limit?: number,
-    offset?: number,
-    market?: string,
-}
+type SearchOptions = Pick<RouteOptions, "q" | "type" | "market" | "limit" | "offset" | "include_external"> & {
+  readonly q: string,
+  readonly type: ("album" | "artist" | "playlist" | "track" | "show" | "episode" | "audiobook")[]
+};
+
+type GetAlbumTracksOptions = Pick<RouteOptions, "id" | "market" | "limit" | "offset"> & {
+    readonly id: string
+};
+
+type GetUsersSavedAlbumsOptions = Pick<RouteOptions, "limit" | "offset" | "market">;
+
+type GetNewReleasesOptions = Pick<RouteOptions, "country" | "limit" | "offset">;
 
 export class BearerRoutes {
 
@@ -33,18 +37,9 @@ export class BearerRoutes {
 
     public async search(options: SearchOptions): Promise<any> {
         const uri = new URL("https://api.spotify.com/v1/search");
-        for (const [key, value] of Object.entries(options))
-            uri.searchParams.append(key, value as string);
+        BearerRoutes.importOptions(uri, options);
 
-        const response: Response = await fetch(uri, {
-            method: "GET",
-            headers: BearerRoutes.buildHeaders(this.authMethod.token?.access_token!)
-        });
-
-        if (!response.ok)
-            throw new HttpApiError("Unable to fetch search data! Status code: " + response.status);
-
-        return await response.json();
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
     }
 
     public async getAlbumById(id: string, market?: string): Promise<any> {
@@ -53,15 +48,7 @@ export class BearerRoutes {
         if (market !== undefined)
             uri.searchParams.append("market", market);
 
-        const response = await fetch(uri, {
-            method: "GET",
-            headers: BearerRoutes.buildHeaders(this.authMethod.token?.access_token!)
-        });
-
-        if (!response.ok)
-            throw new HttpApiError("Unable to fetch album! Status code: " + response.status);
-
-        return await response.json();
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
     }
 
     public async getAlbumsById(ids: string[], market?: string): Promise<any> {
@@ -71,15 +58,7 @@ export class BearerRoutes {
         if (market !== undefined)
             uri.searchParams.append("market", market);
 
-        const response = await fetch(uri, {
-            method: "GET",
-            headers: BearerRoutes.buildHeaders(this.authMethod.token?.access_token!)
-        });
-
-        if (!response.ok)
-            throw new HttpApiError("Unable to fetch album! Status code: " + response.status);
-
-        return await response.json();
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
     }
 
     public async getAlbumTracksById(options: GetAlbumTracksOptions | string): Promise<any> {
@@ -90,52 +69,82 @@ export class BearerRoutes {
         for (const [key, value] of Object.entries(options))
             if(key !== "id") uri.searchParams.append(key, value as string);
 
-        const response = await fetch(uri, {
-            method: "GET",
-            headers: BearerRoutes.buildHeaders(this.authMethod.token?.access_token!)
-        });
-
-        if (!response.ok)
-            throw new HttpApiError("Unable to fetch album tracks! Status code: " + response.status);
-
-        return await response.json();
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
     }
 
-    public async getUsersSavedAlbums(options?: GetUsersSavedAlbumsOptions): Promise<any> {
+    public async getCurrentUsersSavedAlbums(options?: GetUsersSavedAlbumsOptions): Promise<any> {
         const uri = new URL("https://api.spotify.com/v1/me/albums");
 
         if(options !== undefined)
-            for (const [key, value] of Object.entries(options))
-                uri.searchParams.append(key, value as string);
+            BearerRoutes.importOptions(uri, options);
 
-        const response = await fetch(uri, {
-            method: "GET",
-            headers: BearerRoutes.buildHeaders(this.authMethod.token?.access_token!)
-        });
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
 
-        if (!response.ok)
-            throw new HttpApiError("Unable to fetch user's saved albums! Status code: " + response.status);
+    public async saveAlbumsForCurrentUser(ids: string[]): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/me/albums");
+        uri.searchParams.append("ids", ids.join(","));
 
-        return await response.json();
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async removeCurrentUsersSavedAlbums(ids: string[]): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/me/albums");
+        uri.searchParams.append("ids", ids.join(","));
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "DELETE" });
+    }
+
+    public async checkCurrentUserSavedAlbums(ids: string[]): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/me/albums/contains");
+        uri.searchParams.append("ids", ids.join(","));
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getNewReleases(options?: GetNewReleasesOptions): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/browse/new-releases");
+
+        if(options !== undefined)
+            BearerRoutes.importOptions(uri, options);
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
     }
 
     public async getCurrentProfile(): Promise<any> {
-        const response: Response = await fetch("https://api.spotify.com/v1/me", {
-            method: "GET",
-            headers: BearerRoutes.buildHeaders(this.authMethod.token?.access_token!)
-        });
-
-        if (!response.ok)
-            throw new HttpApiError("Unable to fetch current user profile! Status code: " + response.status);
-
-        return await response.json();
+        return await BearerRoutes.makeRequest("https://api.spotify.com/v1/me", this.authMethod, { method: "GET" })
     }
 
-    public static buildHeaders(token: string): HeadersInit {
+    protected static importOptions(uri: URL, options: Object): void {
+        for (const [key, value] of Object.entries(options))
+            uri.searchParams.append(key, value as string);
+    }
+
+    protected static buildHeaders(token: string): HeadersInit {
         return {
             "Authorization": "Bearer " + token,
             "Content-Type": "application/x-www-form-urlencoded"
         };
     }
+
+    protected static async makeRequest(url: string | URL, authMethod: AuthenticationMethod, o_init?: Omit<RequestInit, "headers"> | HttpMethods): Promise<any> {
+        const token: SpotifyToken | undefined = authMethod.token;
+        if (token === undefined)
+            throw new Error("Unable to make request! Authentication method is unverified!");
+
+        if(typeof o_init === "string")
+            o_init = { method: o_init } satisfies RequestInit;
+
+        const init: RequestInit = o_init as RequestInit;
+        init.headers = BearerRoutes.buildHeaders(token.access_token);
+
+        const response = await fetch(url, init);
+
+        if (!response.ok)
+            throw new HttpApiError("Unable to fetch data! Status code: " + response.status);
+
+        return await response.json();
+    }
+
 
 }
