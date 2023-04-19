@@ -5,13 +5,16 @@ type HttpMethods = "GET" | "POST" | "PUT" | "DELETE";
 
 type RouteOptions = {
     readonly id?: string,
+    readonly category_id?: string,
     readonly q?: string,
     readonly type?: string[],
     readonly market?: string,
     readonly country?: string,
+    readonly locale?: string,
     readonly limit?: number,
     readonly offset?: number,
-    readonly include_external?: string
+    readonly include_external?: string,
+    readonly include_groups?: string,
 };
 
 type SearchOptions = Pick<RouteOptions, "q" | "type" | "market" | "limit" | "offset" | "include_external"> & {
@@ -26,6 +29,18 @@ type GetAlbumTracksOptions = Pick<RouteOptions, "id" | "market" | "limit" | "off
 type GetUsersSavedAlbumsOptions = Pick<RouteOptions, "limit" | "offset" | "market">;
 
 type GetNewReleasesOptions = Pick<RouteOptions, "country" | "limit" | "offset">;
+
+type GetArtistsAlbumsOptions = Pick<RouteOptions, "id" | "include_groups" | "market" | "limit" | "offset"> & {
+    readonly id: string
+}
+
+type GetUsersSavedAudiobooksOptions = Pick<RouteOptions, "limit" | "offset">;
+
+type GetSeveralBrowseCategoriesOptions = Pick<RouteOptions, "country" | "locale" | "limit" | "offset">;
+
+type GetSingleBrowseCategoryOptions = Pick<RouteOptions, "category_id" | "country" | "locale">;
+
+type GetUsersSavedEpisodesOptions = Pick<RouteOptions, "market" | "limit" | "offset">;
 
 export class BearerRoutes {
 
@@ -66,8 +81,7 @@ export class BearerRoutes {
             options = { id: options };
 
         const uri = new URL("https://api.spotify.com/v1/albums/" + options.id + "/tracks");
-        for (const [key, value] of Object.entries(options))
-            if(key !== "id") uri.searchParams.append(key, value as string);
+        BearerRoutes.importOptions(uri, options);
 
         return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
     }
@@ -109,6 +123,193 @@ export class BearerRoutes {
             BearerRoutes.importOptions(uri, options);
 
         return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getArtist(id: string): Promise<any> {
+        return await BearerRoutes.makeRequest("https://api.spotify.com/v1/artists/" + id, this.authMethod, { method: "GET" });
+    }
+
+    public async getSeveralArtists(ids: string[]): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/artists");
+        uri.searchParams.append("ids", ids.join(","));
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getArtistsAlbums(options: GetArtistsAlbumsOptions | string): Promise<any> {
+        if(typeof options === "string")
+            options = { id: options } satisfies GetArtistsAlbumsOptions;
+
+        const uri = new URL("https://api.spotify.com/v1/artists/" + options.id + "/albums");
+        BearerRoutes.importOptions(uri, options);
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getArtistsTopTracks(id: string, market?: string): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/artists/" + id + "/top-tracks");
+
+        if(market !== undefined)
+            uri.searchParams.append("market", market);
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getArtistsRelatedArtists(id: string): Promise<any> {
+        return await BearerRoutes.makeRequest("https://api.spotify.com/v1/artists/" + id + "/related-artists", this.authMethod, { method: "GET" });
+    }
+
+    public async getAudiobook(id: string, market?: string): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/audiobooks/" + id);
+
+        if(market !== undefined)
+            uri.searchParams.append("market", market);
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getSeveralAudiobooks(ids: string[], market?: string): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/audiobooks");
+
+        uri.searchParams.append("ids", ids.join(","));
+        if(market !== undefined)
+            uri.searchParams.append("market", market);
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getAudiobookChapters(id: string, market?: string): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/audiobooks/" + id + "/chapters");
+
+        if(market !== undefined)
+            uri.searchParams.append("market", market);
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getCurrentUsersSavedAudiobooks(options?: GetUsersSavedAudiobooksOptions): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/me/audiobooks");
+
+        if(options !== undefined)
+            BearerRoutes.importOptions(uri, options);
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async saveAudiobooksForCurrentUser(ids: string[]): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/me/audiobooks");
+        uri.searchParams.append("ids", ids.join(","));
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "PUT" });
+    }
+
+    public async removeCurrentUsersSavedAudiobooks(ids: string[]): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/me/audiobooks");
+        uri.searchParams.append("ids", ids.join(","));
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "DELETE" });
+    }
+
+    public async checkCurrentUsersSavedAudiobooks(ids: string[]): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/me/audiobooks/contains");
+        uri.searchParams.append("ids", ids.join(","));
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getSeveralBrowseCategories(options?: GetSeveralBrowseCategoriesOptions): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/browse/categories");
+
+        if(options !== undefined)
+            BearerRoutes.importOptions(uri, options);
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getSingleBrowseCategory(options: GetSingleBrowseCategoryOptions | string): Promise<any> {
+        if(typeof options === "string")
+            options = { category_id: options } satisfies GetSingleBrowseCategoryOptions;
+
+        const uri = new URL("https://api.spotify.com/v1/browse/categories/" + options.category_id);
+        BearerRoutes.importOptions(uri, options);
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getChapter(id: string, market?: string): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/chapters/" + id);
+
+        if(market !== undefined)
+            uri.searchParams.append("market", market);
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getSeveralChapters(ids: string[], market?: string): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/chapters");
+
+        uri.searchParams.append("ids", ids.join(","));
+        if(market !== undefined)
+            uri.searchParams.append("market", market);
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getEpisode(id: string, market?: string): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/episodes/" + id);
+
+        if(market !== undefined)
+            uri.searchParams.append("market", market);
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getSeveralEpisodes(ids: string[], market?: string): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/episodes");
+
+        uri.searchParams.append("ids", ids.join(","));
+        if(market !== undefined)
+            uri.searchParams.append("market", market);
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getCurrentUsersSavedEpisodes(options?: GetUsersSavedEpisodesOptions): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/me/episodes");
+
+        if(options !== undefined)
+            BearerRoutes.importOptions(uri, options);
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async saveEpisodesForCurrentUser(ids: string[]): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/me/episodes");
+        uri.searchParams.append("ids", ids.join(","));
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "PUT" });
+    }
+
+    public async removeCurrentUsersSavedEpisodes(ids: string[]): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/me/episodes");
+        uri.searchParams.append("ids", ids.join(","));
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "DELETE" });
+    }
+
+    public async checkCurrentUsersSavedEpisodes(ids: string[]): Promise<any> {
+        const uri = new URL("https://api.spotify.com/v1/me/episodes/contains");
+        uri.searchParams.append("ids", ids.join(","));
+
+        return await BearerRoutes.makeRequest(uri, this.authMethod, { method: "GET" });
+    }
+
+    public async getAvailableGenreSeeds(): Promise<any> {
+        return await BearerRoutes.makeRequest("https://api.spotify.com/v1/recommendations/available-genre-seeds", this.authMethod, { method: "GET" });
+    }
+
+    public async getAvailableMarkets(): Promise<any> {
+        return await BearerRoutes.makeRequest("https://api.spotify.com/v1/markets", this.authMethod, { method: "GET" });
     }
 
     public async getCurrentProfile(): Promise<any> {

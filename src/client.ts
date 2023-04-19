@@ -7,18 +7,25 @@ import { AuthenticationMethod } from "./authentication/AuthenticationMethod";
 import { BasicRoutes } from "./routes/BasicRoutes";
 import { SpotifyError } from "./errors";
 import { BearerRoutes } from "./routes/BearerRoutes";
+import { EventEmitter } from "events";
 
-export class SpotifyClient<R extends BasicRoutes> {
+export class SpotifyClient<R extends BasicRoutes> extends EventEmitter {
 
     protected readonly authMethod: AuthenticationMethod;
     public readonly routes: R;
 
     constructor(authMethod: AuthenticationMethod) {
+        super();
+
         if(!authMethod.verified)
             throw new SpotifyError("You must verify the authentication method before creating a client!");
 
         this.authMethod = authMethod;
         this.routes = new BearerRoutes(authMethod) as unknown as R;
+    }
+
+    public async init(): Promise<void> {
+
     }
 
 }

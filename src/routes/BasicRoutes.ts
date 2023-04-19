@@ -10,5 +10,11 @@ export type BasicRoutes = OmitFunction<BearerRoutes,
     "getCurrentUsersSavedAlbums" |
     "saveAlbumsForCurrentUser" |
     "removeCurrentUsersSavedAlbums" |
-    "checkCurrentUserSavedAlbums"
+    "checkCurrentUserSavedAlbums" |
+    "saveAudiobooksForCurrentUser" |
+    "removeCurrentUsersSavedAudiobooks" |
+    "checkCurrentUsersSavedAudiobooks" |
+    "saveEpisodesForCurrentUser" |
+    "removeCurrentUsersSavedEpisodes" |
+    "checkCurrentUsersSavedEpisodes"
 >;

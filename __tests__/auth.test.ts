@@ -1,6 +1,6 @@
 import {ImplictGrantMethod, IntentScopes, SpotifyClient} from "../src";
 import {createServer} from "http";
-import {launch as openChrome} from "chrome-launcher";
+import { launch as openChrome} from "chrome-launcher";
 import {BearerRoutes} from "../src/routes/BearerRoutes";
 import * as fs from "fs";
 
@@ -29,11 +29,11 @@ test("Access Token", async () => {
 test("getCurrentUsersSavedAlbums", async () => {
     const method = new ImplictGrantMethod(CLIENT_ID, { redirect_uri: new URL("http://localhost:3000/verify") });
     method.verify(new URL(
-        "" // Paste the URL from the browser here...
+        "" // Paste the URL here...
     ));
 
     const client = new SpotifyClient<BearerRoutes>(method);
-    const data = await client.routes.getCurrentUsersSavedAlbums();
+    const data = await client.routes.getArtistsAlbums("0OdUWJ0sBjDrqHygGUXeCF");
 
     expect(data).not.toBeUndefined();
 
