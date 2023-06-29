@@ -12,9 +12,20 @@ export interface SpotifyToken {
 export enum IntentScopes {
 
     READ_PRIVATE_PLAYLIST = "playlist-read-private",
+    READ_COLLABORATIVE_PLAYLIST = "playlist-read-collaborative",
     READ_USER_LIBRARY = "user-library-read",
+    READ_USER_PLAYBACK_STATE = "user-read-playback-state",
+    READ_USER_PLAYBACK_POSITION = "user-read-playback-position",
+    READ_USER_RECENTLY_PLAYED = "user-read-recently-played",
+    READ_PRIVATE_USER_INFORMATION = "user-read-private",
+    READ_EMAIL_ADDRESS = "user-read-email",
+    READ_USER_TOP_ARTISTS_AND_TRACKS = "user-top-read",
+    READ_USER_FOLLOWED_ARTISTS = "user-follow-read",
+    MODIFY_USER_PLAYBACK_STATE = "user-modify-playback-state",
+    MODIFY_PUBLIC_PLAYLIST = "playlist-modify-public",
+    MODIFY_PRIVATE_PLAYLIST = "playlist-modify-private",
     MODIFY_USER_LIBRARY = "user-library-modify",
-
+    MODIFY_USER_FOLLOWING = "user-follow-modify",
 }
 
 export type AuthenticationMethodOptions = {
@@ -83,7 +94,7 @@ export abstract class AuthenticationMethod extends EventEmitter {
         apply_auto_refresh(options.autoRefresh);
     }
 
-    get token(): SpotifyToken | undefined {
+    public get token(): SpotifyToken | undefined {
         return this._token;
     }
 

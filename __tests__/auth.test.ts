@@ -1,15 +1,21 @@
-import {ImplictGrantMethod, IntentScopes, SpotifyClient} from "../src";
+import {ImplictGrantMethod, IntentScopes} from "../src";
+import {HttpMethods, Routes} from "../src/routes/Routes";
+
 import {createServer} from "http";
-import { launch as openChrome} from "chrome-launcher";
-import {BearerRoutes} from "../src/routes/BearerRoutes";
-import * as fs from "fs";
+import {launch as openChrome} from "chrome-launcher";
+import {SearchTransaction} from "../src/routes/Endpoints";
 
 const { CLIENT_ID, CLIENT_SECRET } = require("./config/config.json");
 
 test("Access Token", async () => {
     const method = new ImplictGrantMethod(CLIENT_ID, {
         redirect_uri: new URL("http://localhost:3000/verify"),
-        scope: [ IntentScopes.READ_USER_LIBRARY, IntentScopes.MODIFY_USER_LIBRARY ]
+        scope: [
+            IntentScopes.READ_USER_LIBRARY,
+            IntentScopes.MODIFY_USER_LIBRARY,
+            IntentScopes.READ_USER_PLAYBACK_STATE,
+            IntentScopes.MODIFY_USER_PLAYBACK_STATE
+        ]
     });
     const chrome = await openChrome({ startingUrl: method.authenticate().toString() });
 
@@ -26,17 +32,23 @@ test("Access Token", async () => {
     });
 }, 10 * 60000);
 
-test("getCurrentUsersSavedAlbums", async () => {
-    const method = new ImplictGrantMethod(CLIENT_ID, { redirect_uri: new URL("http://localhost:3000/verify") });
+test("Merging Objects Test #1", async () => {
+    const method = new ImplictGrantMethod(CLIENT_ID, {
+        redirect_uri: new URL("http://localhost:3000/verify")
+    });
+
     method.verify(new URL(
-        "" // Paste the URL here...
+        ""
     ));
 
-    const client = new SpotifyClient<BearerRoutes>(method);
-    const data = await client.routes.getArtistsAlbums("0OdUWJ0sBjDrqHygGUXeCF");
-
-    expect(data).not.toBeUndefined();
-
-    console.log(data);
-    fs.writeFileSync("output.json", JSON.stringify(data, null, 4));
+    const transaction = await Routes.request(method, {
+        href: {
+            method: HttpMethods.GET,
+            uri: "https://api.spotify.com/v1/search",
+        },
+        options: {
+            q: "505",
+            type: [ "track" ]
+        }
+    } satisfies SearchTransaction);
 });
